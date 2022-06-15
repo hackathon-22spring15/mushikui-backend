@@ -2,7 +2,7 @@ from ast import Expression
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import random
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import Column
@@ -12,7 +12,7 @@ import os
 import json
 import datetime
 
-def calc(x, y, ope):
+def calc(x: int, y: int, ope: str) -> int:
     if ope == "+":
         return x + y
     elif ope == "-":
@@ -22,7 +22,7 @@ def calc(x, y, ope):
     else:
         return x / y
 
-def scan_exp(nums, ope, n):
+def scan_exp(nums: str, ope: str, n: str) -> bool:
     if n == 0:
         try:
             if ope[0] in "+-" and ope[1] in "*/":
@@ -99,7 +99,6 @@ def get_expression(date: int):
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
     
-    
     # dateをdatetime objectへ
     date_datetime = int_to_date(date)
     
@@ -109,6 +108,7 @@ def get_expression(date: int):
     # セッションの生成
     SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
     session = SessionClass()
+    
     date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
     
     # 今日の式が存在しなければ
@@ -122,7 +122,7 @@ def get_expression(date: int):
         while flag == False:
             ind = random.randrange(len(expressions.keys()))
             date_expression = expressions[str(ind)]
-            problem = session.query(Problems).filter(Problems.expression==date_expression).first()
+            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
             if problem is None:
                 exp_data = Problems(expression=date_expression, date = date_datetime)
                 session.add(exp_data)
@@ -138,6 +138,39 @@ def get_expression(date: int):
         date_expression = date_expression.expression
 
     return {"expression": date_expression}
+
+@app.post("/expression/{date}")
+def post_expression(date: int, expression: str):
+    # 7,8桁以外は後々実装
+    if len(str(date)) < 7 or len(str(date)) > 8:
+        raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
+    
+    # dateをdatetime objectへ
+    date_datetime = int_to_date(date)
+    
+    # セッションの生成
+    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
+    session = SessionClass()
+    expression_ans = session.query(Problems).filter(Problems.date==date_datetime).first()
+    if expression_ans is None:
+        raise HTTPException(status_code=400, detail="Answer for the date is not exist.")
+    if not len(expression) == len(expression_ans.expression):
+        raise HTTPException(status_code=400, detail="Length of expression unmatched.")
+    else:
+        res = [0] * (len(expression) - 1)
+        pass_equal = 0
+        for i in range(len(expression)):
+            if expression[i] == "=":
+                pass_equal = 1
+                continue
+            if expression[i] == expression_ans.expression[i]:
+                res[i - pass_equal] = 1
+            elif expression[i] in expression_ans.expression and not expression[i] in expression[:i]:
+                res[i - pass_equal] = 2
+    return {"check": res}
+
+    
+
 
 # 後で消すやつ
 @app.get("/delete_one")
