@@ -56,8 +56,8 @@ class Problems(Base):
 def read_root():
     return {"site_intro": "This is description of the site."}
 
-@app.post("/expression/{date}")
-def post_expression(date: int, expression: Expression, response_model: Check, response_model_exclude_unset=True):
+@app.post("/expression/{date}", response_model=Check, response_model_exclude_unset=True)
+def post_expression(date: int, expression: Expression):
     expr = expression.expression
 
     # 7,8桁以外は後々実装
