@@ -52,8 +52,12 @@ class Problems(Base):
     __tablename__ = "problems"  # テーブル名を指定
     __table_args__ = {"autoload": True} # カラムは自動読み込み
 
+@app.get("/")
+def read_root():
+    return {"site_intro": "This is description of the site."}
+
 @app.post("/expression/{date}")
-def post_expression(date: int, expression: Expression):
+def post_expression(date: int, expression: Expression, response_model: Check, response_model_exclude_unset=True):
     expr = expression.expression
 
     # 7,8桁以外は後々実装
