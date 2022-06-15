@@ -18,43 +18,7 @@ class Expression(BaseModel):
 class Check(BaseModel):
     check: List[int] = []
 
-def calc(x: int, y: int, ope: str) -> int:
-    if ope == "+":
-        return x + y
-    elif ope == "-":
-        return x - y
-    elif ope == "*":
-        return x * y
-    else:
-        return x / y
-
-def scan_exp(nums: str, ope: str, n: str) -> bool:
-    if n == 0:
-        try:
-            if ope[0] in "+-" and ope[1] in "*/":
-                res = int(nums[0]) == calc(int(nums[1]), calc(int(nums[2]), int(nums[3]), ope[1]), ope[0])
-            else:
-                res = int(nums[0]) == calc(calc(int(nums[1]), int(nums[2]), ope[0]), int(nums[3]), ope[1])
-            return res
-        except:
-            return False
-    if n == 1:
-        try:
-            res = calc(int(nums[0]), int(nums[1]), ope[0]) == calc(int(nums[2]), int(nums[3]), ope[1])
-            return res
-        except:
-            return False
-    else:
-        try:
-            if ope[0] in "+-" and ope[1] in "*/":
-                res = calc(int(nums[0]), calc(int(nums[1]), int(nums[2]), ope[1]), ope[0]) == int(nums[3])
-            else:
-                res = calc(calc(int(nums[0]), int(nums[1]), ope[0]), int(nums[2]), ope[1]) == int(nums[3])
-            return res
-        except:
-            return False
-
-def int_to_date(date: int) -> datetime:
+def int_to_date(date: int) -> datetime.date:
     if len(str(date)) == 7:
         try:
             res = datetime.date(year = date // 1000, month = (date % 1000) // 100, day = date % 100)
@@ -68,7 +32,7 @@ def int_to_date(date: int) -> datetime:
         except ValueError:
             raise HTTPException(status_code=400, detail="You should send correct date.")
 
-def date_to_int(date: datetime) -> int:
+def date_to_int(date: datetime.date) -> int:
     return int(date.strftime("%Y%m%d"))
 
 app = FastAPI()
@@ -90,7 +54,7 @@ class Problems(Base):
 
 @app.post("/expression/{date}")
 def post_expression(date: int, expression: Expression):
-    expression = expression.expression
+    expr = expression.expression
 
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
@@ -118,9 +82,9 @@ def post_expression(date: int, expression: Expression):
         while flag == False:
             ind = random.randrange(len(expressions.keys()))
             date_expression = expressions[str(ind)]
-            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
+            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expr==date_expression).first()
             if problem is None:
-                exp_data = Problems(expression=date_expression, date = date_datetime)
+                exp_data = Problems(expr=date_expression, date = date_datetime)
                 session.add(exp_data)
                 session.commit()
                 flag = True
@@ -134,17 +98,17 @@ def post_expression(date: int, expression: Expression):
     else:
         expression_ans = date_expression.expression
 
-    if not len(expression) == len(expression_ans):
-        raise HTTPException(status_code=400, detail="Length of expression unmatched.")
+    if not len(expr) == len(expression_ans):
+        raise HTTPException(status_code=400, detail="Length of expr unmatched.")
     else:
-        res = [0] * (len(expression) - 1)
+        res = [0] * (len(expr) - 1)
         pass_equal = 0
-        for i in range(len(expression)):
-            if expression[i] == "=":
+        for i in range(len(expr)):
+            if expr[i] == "=":
                 pass_equal = 1
                 continue
-            if expression[i] == expression_ans[i]:
+            if expr[i] == expression_ans[i]:
                 res[i - pass_equal] = 1
-            elif expression[i] in expression_ans and not (expression[i] in expression[:i] or expression[expression_ans.find(expression[i])] == expression_ans[expression_ans.find(expression[i])]):
+            elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
                 res[i - pass_equal] = 2
     return {"check": res}
