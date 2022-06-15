@@ -88,14 +88,10 @@ class Problems(Base):
     __tablename__ = "problems"  # テーブル名を指定
     __table_args__ = {"autoload": True} # カラムは自動読み込み
 
-@app.get("/")
-def read_root():
-    return {"site_intro": "This is description of the site."}
+@app.post("/expression/{date}")
+def post_expression(date: int, expression: Expression):
+    expression = expression.expression
 
-# dateがどんな形式かは要検討
-# 今回の例は20220613のような形を想定
-@app.get("/expression/{date}")
-def get_expression(date: int,response_model=Expression ,response_model_exclude_unset=True):
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
@@ -103,9 +99,6 @@ def get_expression(date: int,response_model=Expression ,response_model_exclude_u
     # dateをdatetime objectへ
     date_datetime = int_to_date(date)
     
-    # 8桁に揃える
-    date = date_to_int(date_datetime)
-
     # セッションの生成
     SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
     session = SessionClass()
@@ -114,6 +107,8 @@ def get_expression(date: int,response_model=Expression ,response_model_exclude_u
     
     # 今日の式が存在しなければ
     if date_expression is None:
+        # 8桁に揃える
+        date = date_to_int(date_datetime)
         random.seed(date)
         with open("expression.json", "r") as f:
             expressions = json.load(f)
@@ -135,28 +130,11 @@ def get_expression(date: int,response_model=Expression ,response_model_exclude_u
                 flag = True
             else:
                 continue
+        expression_ans = date_expression
     else:
-        date_expression = date_expression.expression
-    return {"expression": date_expression}
+        expression_ans = date_expression.expression
 
-@app.post("/expression/{date}")
-def post_expression(date: int, expression: Expression):
-    expression = expression.expression
-
-    # 7,8桁以外は後々実装
-    if len(str(date)) < 7 or len(str(date)) > 8:
-        raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
-    
-    # dateをdatetime objectへ
-    date_datetime = int_to_date(date)
-    
-    # セッションの生成
-    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
-    session = SessionClass()
-    expression_ans = session.query(Problems).filter(Problems.date==date_datetime).first()
-    if expression_ans is None:
-        raise HTTPException(status_code=400, detail="Answer for the date is not exist.")
-    if not len(expression) == len(expression_ans.expression):
+    if not len(expression) == len(expression_ans):
         raise HTTPException(status_code=400, detail="Length of expression unmatched.")
     else:
         res = [0] * (len(expression) - 1)
@@ -165,8 +143,8 @@ def post_expression(date: int, expression: Expression):
             if expression[i] == "=":
                 pass_equal = 1
                 continue
-            if expression[i] == expression_ans.expression[i]:
+            if expression[i] == expression_ans[i]:
                 res[i - pass_equal] = 1
-            elif expression[i] in expression_ans.expression and not expression[i] in expression[:i]:
+            elif expression[i] in expression_ans and not (expression[i] in expression[:i] or expression[expression_ans.find(expression[i])] == expression_ans[expression_ans.find(expression[i])]):
                 res[i - pass_equal] = 2
     return {"check": res}
