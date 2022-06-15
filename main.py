@@ -1,4 +1,5 @@
 from typing import List
+from urllib import response
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import random
@@ -17,6 +18,9 @@ class Expression(BaseModel):
 
 class Check(BaseModel):
     check: List[int] = []
+
+class PosEqual(BaseModel):
+    pos: int
 
 def int_to_date(date: int) -> datetime.date:
     if len(str(date)) == 7:
@@ -52,7 +56,57 @@ class Problems(Base):
     __tablename__ = "problems"  # テーブル名を指定
     __table_args__ = {"autoload": True} # カラムは自動読み込み
 
-@app.post("/expression/{date}")
+@app.get("/")
+def read_root():
+    return {"site_intro": "This is description of the site."}
+
+@app.get("/expression/{date}", response_model=PosEqual, response_model_exclude_unset=True)
+def get_equal(date: int):
+    # 7,8桁以外は後々実装
+    if len(str(date)) < 7 or len(str(date)) > 8:
+        raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
+    
+    # dateをdatetime objectへ
+    date_datetime = int_to_date(date)
+
+    # セッションの生成
+    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
+    session = SessionClass()
+
+    date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
+
+    # 今日の式が存在しなければ
+    if date_expression is None:
+        # 8桁に揃える
+        date = date_to_int(date_datetime)
+        random.seed(date)
+        with open("expression.json", "r") as f:
+            expressions = json.load(f)
+        flag = False
+
+        # 最近(一年以内)出されたものは出題しないようにする
+        while flag == False:
+            ind = random.randrange(len(expressions.keys()))
+            date_expression = expressions[str(ind)]
+            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
+            if problem is None:
+                exp_data = Problems(expression=date_expression, date = date_datetime)
+                session.add(exp_data)
+                session.commit()
+                flag = True
+            elif date - date_to_int(problem.date) > 10000:
+                problem.date = date_datetime
+                session.commit()
+                flag = True
+            else:
+                continue
+        expression_ans = date_expression
+    else:
+        expression_ans = date_expression.expression
+    pos_equal = expression_ans.find(("="))
+    return {"pos": pos_equal}
+
+@app.post("/expression/{date}", response_model=Check, response_model_exclude_unset=True)
 def post_expression(date: int, expression: Expression):
     expr = expression.expression
 
@@ -69,32 +123,11 @@ def post_expression(date: int, expression: Expression):
     
     date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
     
+    expression_ans = date_expression.expression
+
     # 今日の式が存在しなければ
     if date_expression is None:
-        # 8桁に揃える
-        date = date_to_int(date_datetime)
-        random.seed(date)
-        with open("expression.json", "r") as f:
-            expressions = json.load(f)
-        flag = False
-
-        # 最近(一年以内)出されたものは出題しないようにする
-        while flag == False:
-            ind = random.randrange(len(expressions.keys()))
-            date_expression = expressions[str(ind)]
-            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expr==date_expression).first()
-            if problem is None:
-                exp_data = Problems(expr=date_expression, date = date_datetime)
-                session.add(exp_data)
-                session.commit()
-                flag = True
-            elif date - date_to_int(problem.date) > 10000:
-                problem.date = date_datetime
-                session.commit()
-                flag = True
-            else:
-                continue
-        expression_ans = date_expression
+        raise HTTPException(status_code=400, detail="You looks trying to get answer with wrong way.")
     else:
         expression_ans = date_expression.expression
 
@@ -105,6 +138,8 @@ def post_expression(date: int, expression: Expression):
         pass_equal = 0
         for i in range(len(expr)):
             if expr[i] == "=":
+                if not expression_ans[i] == "=":
+                    raise HTTPException(status_code=400, detail="Your equal position unmatched.")
                 pass_equal = 1
                 continue
             if expr[i] == expression_ans[i]:
