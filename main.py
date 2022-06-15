@@ -80,7 +80,7 @@ def get_equal(date: int):
         # 8桁に揃える
         date = date_to_int(date_datetime)
         random.seed(date)
-        with open("expression.json", "r") as f:
+        with open("expressions_6blanks.json", "r") as f:
             expressions = json.load(f)
         flag = False
 
@@ -94,7 +94,7 @@ def get_equal(date: int):
                 session.add(exp_data)
                 session.commit()
                 flag = True
-            elif date - date_to_int(problem.date) > 10000:
+            elif abs(date - date_to_int(problem.date)) > 10000:
                 problem.date = date_datetime
                 session.commit()
                 flag = True
@@ -131,6 +131,51 @@ def post_expression(date: int, expression: Expression):
     else:
         expression_ans = date_expression.expression
 
+    if not len(expr) == len(expression_ans):
+        raise HTTPException(status_code=400, detail="Length of expr unmatched.")
+    else:
+        res = [0] * (len(expr) - 1)
+        pass_equal = 0
+        for i in range(len(expr)):
+            if expr[i] == "=":
+                if not expression_ans[i] == "=":
+                    raise HTTPException(status_code=400, detail="Your equal position unmatched.")
+                pass_equal = 1
+                continue
+            if expr[i] == expression_ans[i]:
+                res[i - pass_equal] = 1
+            elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
+                res[i - pass_equal] = 2
+    return {"check": res}
+
+"""
+memo:
+random生成について、
+1. seed値固定なら同じ式が返るのでデータベースを使わない <- now
+2. データベースを使う(dateはランダム生成で適当な8桁を生成する)
+3. データベースを使う(使わないdateを割り当てて、idで管理)
+4. データベースを使う(新たなテーブルを用意する)
+"""
+@app.get("/expression/random/{seed}", response_model=PosEqual, response_model_exclude_unset=True)
+def get_equal(seed: int):
+    random.seed(seed)
+    with open("expressions_6blanks.json", "r") as f:
+            expressions = json.load(f)
+    ind = random.randrange(len(expressions.keys()))
+    expr = expressions[str(ind)]
+    pos_equal = expr.find("=")
+    return {"pos": pos_equal}
+
+@app.post("/expression/random/{seed}", response_model=Check, response_model_exclude_unset=True)
+def post_expression(seed: int, expression: Expression):
+    expr = expression.expression
+
+    random.seed(seed)
+    with open("expressions_6blanks.json", "r") as f:
+            expressions = json.load(f)
+    ind = random.randrange(len(expressions.keys()))
+    expression_ans = expressions[str(ind)]
+    
     if not len(expr) == len(expression_ans):
         raise HTTPException(status_code=400, detail="Length of expr unmatched.")
     else:
