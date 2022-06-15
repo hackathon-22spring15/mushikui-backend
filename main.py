@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from ast import Expression
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import random
 from sqlalchemy import create_engine
@@ -47,6 +48,26 @@ def scan_exp(nums, ope, n):
         except:
             return False
 
+def int_to_date(date: int) -> datetime:
+    if len(str(date)) == 7:
+        try:
+            res = datetime.date(year = date // 1000, month = (date % 1000) // 100, day = date % 100)
+            return res
+        except ValueError:
+            raise HTTPException(status_code=400, detail="You should send correct date.")
+    
+
+    if len(str(date)) == 8:
+        try:
+            res = datetime.date(year = date // 10000, month = (date % 10000) // 100, day = date % 100)
+            return res
+        except ValueError:
+            raise HTTPException(status_code=400, detail="You should send correct date.")
+    
+
+def date_to_int(date: datetime) -> int:
+    return int(date.strftime("%Y%m%d"))
+
 
 app = FastAPI()
 # データベースへの接続
@@ -74,33 +95,52 @@ def read_root():
 # 今回の例は20220613のような形を想定
 @app.get("/expression/{date}")
 def get_expression(date: int):
+    # 7,8桁以外は後々実装
+    if len(str(date)) < 7 or len(str(date)) > 8:
+        raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
+    
+    
+    # dateをdatetime objectへ
+    date_datetime = int_to_date(date)
+    
+    # 8桁に揃える
+    date = date_to_int(date_datetime)
+
     # セッションの生成
     SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
     session = SessionClass()
-    # if NOT_EXIST_DATE_EXPRESSION:
-    random.seed(date)
-    with open("expression.json", "r") as f:
-        expressions = json.load(f)
-    ind = random.randrange(len(expression.keys()))
-    expression = expressions[ind]
-        # ADD_EXPRESSION_TO_DB
-    # else:
-    #     SELECT_EXPRESSION_FROM_DB
-    return {"expression": expression}
+    date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
+    
+    # 今日の式が存在しなければ
+    if date_expression is None:
+        random.seed(date)
+        with open("expression.json", "r") as f:
+            expressions = json.load(f)
+        flag = False
+
+        # 最近(一年以内)出されたものは出題しないようにする
+        while flag == False:
+            ind = random.randrange(len(expressions.keys()))
+            date_expression = expressions[str(ind)]
+            problem = session.query(Problems).filter(Problems.expression==date_expression).first()
+            if problem is None:
+                exp_data = Problems(expression=date_expression, date = date_datetime)
+                session.add(exp_data)
+                session.commit()
+                flag = True
+            elif date - date_to_int(problem.date) > 10000:
+                problem.date = date_datetime
+                session.commit()
+                flag = True
+            else:
+                continue
+    else:
+        date_expression = date_expression.expression
+
+    return {"expression": date_expression}
 
 # 後で消すやつ
-@app.get("/test1")
-def get_test1_db():
-    # セッションの生成
-    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
-    session = SessionClass()
-    # 試しにデータ挿入
-    expression1 = Problems(expression = "1+4=8-3", date = datetime.date.today())
-    session.add(expression1)
-    session.commit()
-    return {"comment": "successfully inserted"}
-
-@app.get("/test2")
+@app.get("/delete_one")
 def get_test2_db():
     # セッションの生成
     SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
