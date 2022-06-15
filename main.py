@@ -1,4 +1,4 @@
-from ast import Expression
+from typing import List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import random
@@ -11,6 +11,12 @@ from itertools import permutations
 import os
 import json
 import datetime
+
+class Expression(BaseModel):
+    expression: str
+
+class Check(BaseModel):
+    check: List[int] = []
 
 def calc(x: int, y: int, ope: str) -> int:
     if ope == "+":
@@ -55,19 +61,15 @@ def int_to_date(date: int) -> datetime:
             return res
         except ValueError:
             raise HTTPException(status_code=400, detail="You should send correct date.")
-    
-
     if len(str(date)) == 8:
         try:
             res = datetime.date(year = date // 10000, month = (date % 10000) // 100, day = date % 100)
             return res
         except ValueError:
             raise HTTPException(status_code=400, detail="You should send correct date.")
-    
 
 def date_to_int(date: datetime) -> int:
     return int(date.strftime("%Y%m%d"))
-
 
 app = FastAPI()
 # データベースへの接続
@@ -75,7 +77,6 @@ dialect = "mysql"
 driver = "pymysql"
 username = os.environ["MARIADB_USERNAME"]
 password = os.environ["MARIADB_PASSWORD"]
-# host = "@localhost"
 host = os.environ["MARIADB_HOSTNAME"]
 port = "3306"
 database = os.environ["MARIADB_DATABASE"]
@@ -94,7 +95,7 @@ def read_root():
 # dateがどんな形式かは要検討
 # 今回の例は20220613のような形を想定
 @app.get("/expression/{date}")
-def get_expression(date: int):
+def get_expression(date: int,response_model=Expression ,response_model_exclude_unset=True):
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
@@ -136,11 +137,12 @@ def get_expression(date: int):
                 continue
     else:
         date_expression = date_expression.expression
-
     return {"expression": date_expression}
 
 @app.post("/expression/{date}")
-def post_expression(date: int, expression: str):
+def post_expression(date: int, expression: Expression):
+    expression = expression.expression
+
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
@@ -168,24 +170,3 @@ def post_expression(date: int, expression: str):
             elif expression[i] in expression_ans.expression and not expression[i] in expression[:i]:
                 res[i - pass_equal] = 2
     return {"check": res}
-
-    
-
-
-# 後で消すやつ
-@app.get("/delete_one")
-def get_test2_db():
-    # セッションの生成
-    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
-    session = SessionClass()
-    # delete data
-    expressions = session.query(Problems).first()
-    try:
-        session.delete(expressions)
-        session.commit()
-    except:
-        return {"comment": "failed to delete"}
-    return {"comment": "successfully deleted"}
-
-
-
