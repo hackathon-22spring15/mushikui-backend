@@ -6,6 +6,7 @@ import random
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 import datetime
