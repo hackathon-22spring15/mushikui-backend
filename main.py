@@ -128,8 +128,6 @@ def post_expression_daily(date: int, expression: Expression):
     session = SessionClass()
     
     date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
-    
-    expression_ans = date_expression.expression
 
     # 今日の式が存在しなければ
     if date_expression is None:
@@ -143,8 +141,8 @@ def post_expression_daily(date: int, expression: Expression):
         res = [0] * (len(expr) - 1)
         pass_equal = 0
         for i in range(len(expr)):
-            if expr[i] == "=":
-                if not expression_ans[i] == "=":
+            if expression_ans[i] == "=":
+                if not expr[i] == "=":
                     raise HTTPException(status_code=400, detail="Your equal position unmatched.")
                 pass_equal = 1
                 continue
@@ -188,8 +186,8 @@ def post_expression_random(seed: int, expression: Expression):
         res = [0] * (len(expr) - 1)
         pass_equal = 0
         for i in range(len(expr)):
-            if expr[i] == "=":
-                if not expression_ans[i] == "=":
+            if expression_ans[i] == "=":
+                if not expr[i] == "=":
                     raise HTTPException(status_code=400, detail="Your equal position unmatched.")
                 pass_equal = 1
                 continue
