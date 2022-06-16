@@ -3,7 +3,7 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "8000:8000"
     tty: true
     restart: unless-stopped
     environment:
@@ -38,7 +38,7 @@ services:
     links:
       - app:app
     environment:
-      DOMAINS: 'api.nascalay.trasta.dev -> http://app:3000'
+      DOMAINS: 'api.nascalay.trasta.dev -> http://app:8000'
       STAGE: 'local'
       FORCE_RENEW: 'false'
       WEBSOCKET: 'true'

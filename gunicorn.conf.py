@@ -1,6 +1,6 @@
 # ref: https://docs.gunicorn.org/en/stable/settings.html
 
-bind = "0.0.0.0:3000"
+bind = "0.0.0.0:8000"
 workers = 1
 worker_class = "uvicorn.workers.UvicornWorker"
 loglevel = "info"
