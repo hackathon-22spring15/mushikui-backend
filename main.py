@@ -6,9 +6,7 @@ import random
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import Column
-from sqlalchemy.types import Integer, String
-from itertools import permutations
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 import datetime
@@ -40,6 +38,14 @@ def date_to_int(date: datetime.date) -> int:
     return int(date.strftime("%Y%m%d"))
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # データベースへの接続
 dialect = "mysql"
 driver = "pymysql"
