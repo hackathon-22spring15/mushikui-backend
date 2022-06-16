@@ -61,7 +61,7 @@ def read_root():
     return {"site_intro": "This is description of the site."}
 
 @app.get("/expression/{date}", response_model=PosEqual, response_model_exclude_unset=True)
-def get_equal(date: int):
+def get_equal_daily(date: int):
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
@@ -107,7 +107,7 @@ def get_equal(date: int):
     return {"pos": pos_equal}
 
 @app.post("/expression/{date}", response_model=Check, response_model_exclude_unset=True)
-def post_expression(date: int, expression: Expression):
+def post_expression_daily(date: int, expression: Expression):
     expr = expression.expression
 
     # 7,8桁以外は後々実装
@@ -157,7 +157,7 @@ random生成について、
 4. データベースを使う(新たなテーブルを用意する)
 """
 @app.get("/expression/random/{seed}", response_model=PosEqual, response_model_exclude_unset=True)
-def get_equal(seed: int):
+def get_equal_random(seed: int):
     random.seed(seed)
     with open("expressions_6blanks.json", "r") as f:
             expressions = json.load(f)
@@ -167,7 +167,7 @@ def get_equal(seed: int):
     return {"pos": pos_equal}
 
 @app.post("/expression/random/{seed}", response_model=Check, response_model_exclude_unset=True)
-def post_expression(seed: int, expression: Expression):
+def post_expression_random(seed: int, expression: Expression):
     expr = expression.expression
 
     random.seed(seed)
