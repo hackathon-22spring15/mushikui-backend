@@ -199,6 +199,15 @@ def get_equal_random(seed: int):
     pos_equal = expr.find("=")
     return {"pos": pos_equal}
 
+@app.get("/expression/random/{seed}/answer", response_model=Expression, response_model_exclude_unset=True)
+def get_equal_random(seed: int):
+    random.seed(seed)
+    with open("expressions_6blanks.json", "r") as f:
+            expressions = json.load(f)
+    ind = random.randrange(len(expressions.keys()))
+    expr = expressions[str(ind)]
+    return {"expression":expr}
+
 @app.post("/expression/random/{seed}", response_model=Check, response_model_exclude_unset=True)
 def post_expression_random(seed: int, expression: Expression):
     expr = expression.expression
@@ -225,3 +234,4 @@ def post_expression_random(seed: int, expression: Expression):
             elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
                 res[i - pass_equal] = 2
     return {"check": res}
+
