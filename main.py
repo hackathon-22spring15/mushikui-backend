@@ -110,7 +110,32 @@ def get_equal_daily(date: int):
     else:
         expression_ans = date_expression.expression
     pos_equal = expression_ans.find(("="))
+    session.close()
     return {"pos": pos_equal}
+
+@app.get("/expression/{date}/answer", response_model=Expression, response_model_exclude_unset=True)
+def get_equal_daily(date: int):
+    # 7,8桁以外は後々実装
+    if len(str(date)) < 7 or len(str(date)) > 8:
+        raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
+    
+    # dateをdatetime objectへ
+    date_datetime = int_to_date(date)
+
+    # セッションの生成
+    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
+    session = SessionClass()
+
+    date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
+
+    # 今日の式が存在しなければ
+    if date_expression is None:
+        session.close()
+        raise HTTPException(status_code=400, detail="You looks trying to get answer with wrong way.")
+    else:
+        expression_ans = date_expression.expression
+    return {"expression": expression_ans}
+
 
 @app.post("/expression/{date}", response_model=Check, response_model_exclude_unset=True)
 def post_expression_daily(date: int, expression: Expression):
@@ -131,11 +156,13 @@ def post_expression_daily(date: int, expression: Expression):
 
     # 今日の式が存在しなければ
     if date_expression is None:
+        session.close()
         raise HTTPException(status_code=400, detail="You looks trying to get answer with wrong way.")
     else:
         expression_ans = date_expression.expression
 
     if not len(expr) == len(expression_ans):
+        session.close()
         raise HTTPException(status_code=400, detail="Length of expr unmatched.")
     else:
         res = [0] * (len(expr) - 1)
@@ -143,6 +170,7 @@ def post_expression_daily(date: int, expression: Expression):
         for i in range(len(expr)):
             if expression_ans[i] == "=":
                 if not expr[i] == "=":
+                    session.close()
                     raise HTTPException(status_code=400, detail="Your equal position unmatched.")
                 pass_equal = 1
                 continue
@@ -150,6 +178,7 @@ def post_expression_daily(date: int, expression: Expression):
                 res[i - pass_equal] = 1
             elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
                 res[i - pass_equal] = 2
+        session.close()
     return {"check": res}
 
 """
