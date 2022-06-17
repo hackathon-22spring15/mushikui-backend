@@ -38,6 +38,14 @@ def date_to_int(date: datetime.date) -> int:
     return int(date.strftime("%Y%m%d"))
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # データベースへの接続
 dialect = "mysql"
 driver = "pymysql"
@@ -102,6 +110,7 @@ def get_equal_daily(date: int):
     else:
         expression_ans = date_expression.expression
     pos_equal = expression_ans.find(("="))
+    session.close()
     return {"pos": pos_equal}
 
 @app.post("/expression/{date}", response_model=Check, response_model_exclude_unset=True)
@@ -123,11 +132,13 @@ def post_expression_daily(date: int, expression: Expression):
 
     # 今日の式が存在しなければ
     if date_expression is None:
+        session.close()
         raise HTTPException(status_code=400, detail="You looks trying to get answer with wrong way.")
     else:
         expression_ans = date_expression.expression
 
     if not len(expr) == len(expression_ans):
+        session.close()
         raise HTTPException(status_code=400, detail="Length of expr unmatched.")
     else:
         res = [0] * (len(expr) - 1)
@@ -135,6 +146,7 @@ def post_expression_daily(date: int, expression: Expression):
         for i in range(len(expr)):
             if expression_ans[i] == "=":
                 if not expr[i] == "=":
+                    session.close()
                     raise HTTPException(status_code=400, detail="Your equal position unmatched.")
                 pass_equal = 1
                 continue
@@ -142,6 +154,7 @@ def post_expression_daily(date: int, expression: Expression):
                 res[i - pass_equal] = 1
             elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
                 res[i - pass_equal] = 2
+        session.close()
     return {"check": res}
 
 """
