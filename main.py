@@ -116,8 +116,6 @@ def get_equal_daily(date: int):
 def post_expression_daily(date: int, expression: Expression):
     expr = expression.expression
 
-    expr = expr.replace(",", "")
-
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
