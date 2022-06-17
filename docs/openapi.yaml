@@ -126,6 +126,8 @@ components:
   schemas:
     Check:
       title: Check
+      required:
+        - check
       type: object
       properties:
         check:
@@ -133,7 +135,6 @@ components:
           type: array
           items:
             type: integer
-          default: []
     Expression:
       title: Expression
       required:

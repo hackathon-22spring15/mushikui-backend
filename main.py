@@ -15,7 +15,7 @@ class Expression(BaseModel):
     expression: str
 
 class Check(BaseModel):
-    check: List[int] = []
+    check: List[int]
 
 class PosEqual(BaseModel):
     pos: int
