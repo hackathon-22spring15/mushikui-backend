@@ -38,10 +38,9 @@ services:
     links:
       - app:app
     environment:
-      DOMAINS: 'api.nascalay.trasta.dev -> http://app:8000'
+      DOMAINS: 'api.mushikui.trasta.dev -> http://app:8000'
       STAGE: 'local'
       FORCE_RENEW: 'false'
-      WEBSOCKET: 'true'
       CLIENT_MAX_BODY_SIZE: 0
     restart: unless-stopped
     volumes:
