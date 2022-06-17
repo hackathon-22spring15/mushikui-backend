@@ -15,7 +15,7 @@ class Expression(BaseModel):
     expression: str
 
 class Check(BaseModel):
-    check: List[int]
+    check: List[int] = []
 
 class PosEqual(BaseModel):
     pos: int
@@ -114,7 +114,7 @@ def get_equal_daily(date: int):
     return {"pos": pos_equal}
 
 @app.get("/expression/{date}/answer", response_model=Expression, response_model_exclude_unset=True)
-def get_equal_daily(date: int):
+def get_answer_daily(date: int):
     # 7,8桁以外は後々実装
     if len(str(date)) < 7 or len(str(date)) > 8:
         raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
@@ -191,30 +191,29 @@ random生成について、
 """
 @app.get("/expression/random/{seed}", response_model=PosEqual, response_model_exclude_unset=True)
 def get_equal_random(seed: int):
-    random.seed(seed)
     with open("expressions_6blanks.json", "r") as f:
             expressions = json.load(f)
+    random.seed(seed)
     ind = random.randrange(len(expressions.keys()))
     expr = expressions[str(ind)]
     pos_equal = expr.find("=")
     return {"pos": pos_equal}
 
 @app.get("/expression/random/{seed}/answer", response_model=Expression, response_model_exclude_unset=True)
-def get_equal_random(seed: int):
-    random.seed(seed)
+def get_answer_random(seed: int):
     with open("expressions_6blanks.json", "r") as f:
             expressions = json.load(f)
+    random.seed(seed)
     ind = random.randrange(len(expressions.keys()))
     expr = expressions[str(ind)]
-    return {"expression":expr}
+    return {"expression": expr}
 
 @app.post("/expression/random/{seed}", response_model=Check, response_model_exclude_unset=True)
 def post_expression_random(seed: int, expression: Expression):
     expr = expression.expression
-
-    random.seed(seed)
     with open("expressions_6blanks.json", "r") as f:
             expressions = json.load(f)
+    random.seed(seed)
     ind = random.randrange(len(expressions.keys()))
     expression_ans = expressions[str(ind)]
     
