@@ -113,6 +113,30 @@ def get_equal_daily(date: int):
     session.close()
     return {"pos": pos_equal}
 
+@app.get("/expression/{date}/answer", response_model=Expression, response_model_exclude_unset=True)
+def get_equal_daily(date: int):
+    # 7,8桁以外は後々実装
+    if len(str(date)) < 7 or len(str(date)) > 8:
+        raise HTTPException(status_code=400, detail="This api can handle only 7/8 digit date time")
+    
+    # dateをdatetime objectへ
+    date_datetime = int_to_date(date)
+
+    # セッションの生成
+    SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
+    session = SessionClass()
+
+    date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
+
+    # 今日の式が存在しなければ
+    if date_expression is None:
+        session.close()
+        raise HTTPException(status_code=400, detail="You looks trying to get answer with wrong way.")
+    else:
+        expression_ans = date_expression.expression
+    return {"expression": expression_ans}
+
+
 @app.post("/expression/{date}", response_model=Check, response_model_exclude_unset=True)
 def post_expression_daily(date: int, expression: Expression):
     expr = expression.expression
