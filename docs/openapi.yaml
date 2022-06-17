@@ -146,6 +146,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /expression/random/{seed}/answer:
+    get:
+      summary: Get Equal Random
+      operationId: get_equal_random_expression_random__seed__answer_get
+      parameters:
+        - required: true
+          schema:
+            title: Seed
+            type: integer
+          name: seed
+          in: path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expression'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     Check:
