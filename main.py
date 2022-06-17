@@ -85,11 +85,10 @@ def get_equal_daily(date: int):
     if date_expression is None:
         # 8桁に揃える
         date = date_to_int(date_datetime)
-        random.seed(date)
         with open("expressions_6blanks.json", "r") as f:
             expressions = json.load(f)
         flag = False
-
+        random.seed(date)
         # 最近(一年以内)出されたものは出題しないようにする
         while flag == False:
             ind = random.randrange(len(expressions.keys()))
@@ -130,8 +129,29 @@ def get_answer_daily(date: int):
 
     # 今日の式が存在しなければ
     if date_expression is None:
-        session.close()
-        raise HTTPException(status_code=400, detail="You looks trying to get answer with wrong way.")
+        # 8桁に揃える
+        date = date_to_int(date_datetime)
+        with open("expressions_6blanks.json", "r") as f:
+            expressions = json.load(f)
+        flag = False
+        random.seed(date)
+        # 最近(一年以内)出されたものは出題しないようにする
+        while flag == False:
+            ind = random.randrange(len(expressions.keys()))
+            date_expression = expressions[str(ind)]
+            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
+            if problem is None:
+                exp_data = Problems(expression=date_expression, date = date_datetime)
+                session.add(exp_data)
+                session.commit()
+                flag = True
+            elif abs(date - date_to_int(problem.date)) > 10000:
+                problem.date = date_datetime
+                session.commit()
+                flag = True
+            else:
+                continue
+        expression_ans = date_expression
     else:
         expression_ans = date_expression.expression
     return {"expression": expression_ans}
