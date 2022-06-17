@@ -69,6 +69,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /expression/{date}/answer:
+    get:
+      summary: Get Equal Daily
+      operationId: get_equal_daily_expression__date__answer_get
+      parameters:
+        - required: true
+          schema:
+            title: Date
+            type: integer
+          name: date
+          in: path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expression'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /expression/random/{seed}:
     get:
       summary: Get Equal Random
