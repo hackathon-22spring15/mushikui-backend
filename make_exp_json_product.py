@@ -123,11 +123,12 @@ for l in product("0123456789", repeat=5):
 from collections import Counter
 
 res = {}
-
+i = 0
 for k, v in expressions.items():
     c = Counter(v)
     if max(c.values()) < 3:
-        res[k] = v
+        res[i] = v
+        i += 1
 
 with open("./expressions_6blanks.json", mode="w") as f:
     json.dump(res, f)
