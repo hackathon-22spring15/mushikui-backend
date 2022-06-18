@@ -180,8 +180,9 @@ def post_expression_daily(date: int, expression: Expression):
                 continue
             if expr[i] == expression_ans[i]:
                 res[i - pass_equal] = 2
-            elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
-                res[i - pass_equal] = 1
+            elif expr[i] in expression_ans:
+                if not (expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
+                    res[i - pass_equal] = 1
         session.close()
     return {"check": res}
 
@@ -234,7 +235,8 @@ def post_expression_random(seed: int, expression: Expression):
                 continue
             if expr[i] == expression_ans[i]:
                 res[i - pass_equal] = 2
-            elif expr[i] in expression_ans and not (expr[i] in expr[:i] or expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
-                res[i - pass_equal] = 1
+            elif expr[i] in expression_ans:
+                if not (expr[expression_ans.find(expr[i])] == expression_ans[expression_ans.find(expr[i])]):
+                    res[i - pass_equal] = 1
     return {"check": res}
 
