@@ -1,3 +1,4 @@
+from this import d
 from typing import List
 from urllib import response
 from fastapi import FastAPI, HTTPException
@@ -62,6 +63,32 @@ class Problems(Base):
     __tablename__ = "problems"  # テーブル名を指定
     __table_args__ = {"autoload": True} # カラムは自動読み込み
 
+
+def generate_daily_problem(sc: sessionmaker, date_datetime: datetime.date) -> str:
+    with open("expressions_6blanks.json", "r") as f:
+        expressions = json.load(f)
+    random.seed(datetime.datetime.now())
+    date = date_to_int(date_datetime)
+
+    with sc() as session:
+        # 最近(一年以内)出されたものは出題しないようにする
+        while True:
+            ind = random.randrange(len(expressions.keys()))
+            date_expression = expressions[str(ind)]
+            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
+            if problem is None:
+                exp_data = Problems(expression=date_expression, date = date_datetime)
+                session.add(exp_data)
+                session.commit()
+                return exp_data.expression
+            elif abs(date - date_to_int(problem.date)) > 10000:
+                exp_data = Problems(expression=date_expression, date = date_datetime)
+                session.add(exp_data)
+                session.commit()
+                return exp_data.expression
+            else:
+                continue
+
 @app.get("/")
 def read_root():
     return {"site_intro": "This is description of the site."}
@@ -77,39 +104,17 @@ def get_equal_daily(date: int):
 
     # セッションの生成
     SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
-    session = SessionClass()
 
-    date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
+    with SessionClass() as session:
+        date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
 
     # 今日の式が存在しなければ
     if date_expression is None:
-        # 8桁に揃える
-        date = date_to_int(date_datetime)
-        with open("expressions_6blanks.json", "r") as f:
-            expressions = json.load(f)
-        flag = False
-        random.seed(date)
-        # 最近(一年以内)出されたものは出題しないようにする
-        while flag == False:
-            ind = random.randrange(len(expressions.keys()))
-            date_expression = expressions[str(ind)]
-            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
-            if problem is None:
-                exp_data = Problems(expression=date_expression, date = date_datetime)
-                session.add(exp_data)
-                session.commit()
-                flag = True
-            elif abs(date - date_to_int(problem.date)) > 10000:
-                problem.date = date_datetime
-                session.commit()
-                flag = True
-            else:
-                continue
-        expression_ans = date_expression
+        expression_ans: str = generate_daily_problem(SessionClass, date_datetime)
     else:
-        expression_ans = date_expression.expression
+        expression_ans: str = date_expression.expression
     pos_equal = expression_ans.find(("="))
-    session.close()
+
     return {"pos": pos_equal}
 
 @app.get("/expression/{date}/answer", response_model=Expression, response_model_exclude_unset=True)
@@ -123,35 +128,14 @@ def get_answer_daily(date: int):
 
     # セッションの生成
     SessionClass = sessionmaker(engine)  # セッションを作るクラスを作成
-    session = SessionClass()
 
-    date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
+    with SessionClass() as session:
+        date_expression = session.query(Problems).filter(Problems.date==date_datetime).first()
 
     # 今日の式が存在しなければ
     if date_expression is None:
         # 8桁に揃える
-        date = date_to_int(date_datetime)
-        with open("expressions_6blanks.json", "r") as f:
-            expressions = json.load(f)
-        flag = False
-        random.seed(date)
-        # 最近(一年以内)出されたものは出題しないようにする
-        while flag == False:
-            ind = random.randrange(len(expressions.keys()))
-            date_expression = expressions[str(ind)]
-            problem = session.query(Problems).order_by(desc(Problems.date)).filter(Problems.expression==date_expression).first()
-            if problem is None:
-                exp_data = Problems(expression=date_expression, date = date_datetime)
-                session.add(exp_data)
-                session.commit()
-                flag = True
-            elif abs(date - date_to_int(problem.date)) > 10000:
-                problem.date = date_datetime
-                session.commit()
-                flag = True
-            else:
-                continue
-        expression_ans = date_expression
+        expression_ans = generate_daily_problem(SessionClass, date_datetime)
     else:
         expression_ans = date_expression.expression
     return {"expression": expression_ans}
